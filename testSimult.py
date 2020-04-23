@@ -12,7 +12,6 @@ t_GPS.up()
 t = tr.Pen()
 t.shape("triangle")
 
-
 mark_radius = 20
 
 GPS_ERR_VAL = 20
@@ -88,12 +87,7 @@ t_GPS.up()
 가정 1 : 자이로 데이터는 미세한 오차만을 가지고 있다.
 가정 2 : GPS데이터의 벙위 오차는 표준편차 1m의 오류를 가지고 있다.
 가정 3 : 속도 데이터는 아주 미세한 오차를 가지고 있다고 가정한다. 
-
-
 """
-
-
-
 
 #루프 시작
 
@@ -150,8 +144,8 @@ for index, node in enumerate(nodes):
                 t.forward(5)
                 t_GPS.forward(5 + randn() * VEL_ERR_VAL)
                 arrival_count = 0
-                t_GPS.goto((1 - NODE_CORR) * cor_GPS[0] + NODE_CORR * node[0],
-                           (1 - NODE_CORR) * cor_GPS[1] + NODE_CORR * node[1])
+                t_GPS.goto((1 - NODE_CORR) * err_GPS[0] + NODE_CORR * node[0],
+                           (1 - NODE_CORR) * err_GPS[1] + NODE_CORR * node[1])
                 break
 # 오류와 사기가 판치는 공간의 끝
 
