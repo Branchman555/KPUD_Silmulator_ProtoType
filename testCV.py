@@ -5,6 +5,9 @@ import pandas as pd
 from numpy.random import randn
 from scipy.stats import bernoulli
 import math
+import MyRobot
+
+VER_ROBOT = 0.1
 
 t_GPS = tr.Pen()
 t_GPS.color("red")
