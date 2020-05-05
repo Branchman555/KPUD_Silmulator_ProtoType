@@ -9,13 +9,6 @@ import MyRobot
 
 VER_ROBOT = 0.1
 
-t_GPS = tr.Pen()
-t_GPS.color("red")
-t_GPS.up()
-
-t = tr.Pen()
-t.shape("triangle")
-
 mark_radius = 20
 
 GPS_ERR_VAL = 20
@@ -65,14 +58,12 @@ def Ang_Normalize(tar_angle):
     return tar_angle
 
 def cal_point_line(point, line):
-    d = abs(line[0] * point[0] + line[1] * point[1] + line[2])/math.sqrt(line[0]**2 + line[1]**2)
+    d = abs(line[0] * point[0] + line[1] * point[1] + line[2])\
+        / math.sqrt(line[0]**2 + line[1]**2)
     return d
 
 lines = cal_line_equ(nodes)
 print(lines)
-
-t.speed(0)
-t.up()
 
 t_GPS.pensize(ROUTE_WIDTH)
 t_GPS.down()

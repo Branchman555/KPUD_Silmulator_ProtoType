@@ -420,12 +420,26 @@ def geocentric_from_wgs84( p ) :
 if __name__ == "__main__" :
 	print ("example :D")
 
-	pt = GeoPoint(205989.36192, 449778.885301)
-	print (pt.getX(), pt.getY())
+	# pt = GeoPoint(205989.36192, 449778.885301)
+	#
+	# output = convert(TM, GEO, pt)
+	# print (output.getX(), output.getY())
+	#
+	# output = convert(GEO, TM, output)
+	# print (output.getX(), output.getY())
+	#
+	# output = convert(TM, GEO, output)
+	# print (output.getX(), output.getY())
+	pt1 = GeoPoint(126.730667, 37.342222)
+	pt2 = GeoPoint(126.733353, 37.340216)
 
-	output = convert(TM, GEO, pt)
-	print (output.getX(), output.getY())
+	output1 = convert(GEO, TM, pt1)
+	output2 = convert(GEO, TM, pt2)
+	print(output1.getX(), output1.getY())
+	print(output2.getX(), output2.getY())
 
-	output = convert(GEO, KATEC, output)
-	print (output.getX(), output.getY())
+	output1 = convert(TM, GEO, GeoPoint(output1.getX(), output1.getY() - 512))
+
+	#distance = math.sqrt((output1.getX() - output2.getX())**2 + (output1.getY() - output2.getY())**2)
+	print(output1.getY(), output1.getX())
 
