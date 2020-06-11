@@ -6,6 +6,8 @@ from numpy.random import randn
 from scipy.stats import bernoulli
 import threading
 import math
+import requests, json
+import GeoConverter as geo
 
 from time import sleep
 
@@ -24,9 +26,9 @@ BLUE = (255, 0, 0)
 BLACK = (0, 0, 0)
 WHITE = (255, 255, 255)
 
-BACKGROUND_PATH = './images/bg_1.jpg'
-BG_WIDTH = 1024
-BG_HEIGHT = 1024
+BACKGROUND_PATH = './images/bg_0.jpg'
+BG_WIDTH = 2048
+BG_HEIGHT = 2048
 
 referenceOrigin = (126.730667, 37.342222)
 
@@ -48,39 +50,45 @@ class SimulWindow:
         self.__height = SimulWindow.__default_height
         self.__x = self.__default_x
         self.__y = self.__default_y
-        self.__x_para = self.__default_x
-        self.__y_para = self.__default_y
         self.__winname = name
-        self.__img = SimulWindow.__default_win
+        self.__img = SimulWindow.__default_background.copy()
+        self.__shimg = SimulWindow.__default_win
         self.__winstopflag = True
         self.__endstayflag = False
         cv2.namedWindow(self.__winname)
         #cv2.resizeWindow(self.__winname, (200, 200))
 
     def writewindow(self):
-        SimulWindow.__default_background[self.__y:self.__y + self.__height, self.__x:self.__x + self.__width] = self.__img.copy()
+        SimulWindow.__default_background = self.__img.copy()
 
     # def getwindow(self):
     #     return self.__img
 
     def movewindow(self, x, y):
-        self.__x_para += x
-        self.__y_para += y
-        if 0 < self.__x_para < BG_WIDTH - self.__width:
-            self.__x += x
-        if 0 < self.__y_para < BG_HEIGHT - self.__height:
-            self.__y += y
-        self.getwindow()
+        if x <= 0:
+            self.__x = 0
+        if 0 < x < BG_WIDTH - self.__width:
+            self.__x = x
+        if x >= BG_WIDTH - self.__width:
+            self.__x = BG_WIDTH - self.__width
+
+        if y <= 0:
+            self.__y = 0
+        if 0 < y < BG_HEIGHT - self.__height:
+            self.__y = y
+        if y >= BG_HEIGHT - self.__height:
+            self.__y = BG_HEIGHT - self.__height
+
+        self.__shimg = self.__img[self.__y:self.__y + self.__height, self.__x:self.__x + self.__width]
 
     def getwindow(self):
-        self.__img = SimulWindow.__default_background[self.__y:self.__y + self.__height,
-                                                        self.__x:self.__x + self.__width].copy()
+        self.__img = SimulWindow.__default_background.copy()
         return self.__img
 
     def showwindow(self):
         while self.__winstopflag is False:
         #while 1:
-            cv2.imshow(self.__winname, self.__img)
+            cv2.imshow(self.__winname, self.__shimg)
             cv2.waitKey(50)
         print("outto!!!")
 
@@ -90,7 +98,7 @@ class SimulWindow:
         self.__img = SimulWindow.__default_win
 
     def startwindow(self):
-        cv2.imshow(self.__winname, self.__img)
+        cv2.imshow(self.__winname, self.__shimg)
         print("called st_win")
         if self.__winstopflag:
             self.__winstopflag = False
@@ -124,15 +132,18 @@ class SimulWindow:
 
 class Robot:
     __robot_num = 0
+    __focusRobot = -1
     __sm = SimulWindow()
 
     def __init__(self):
-        self.__x = 0
-        self.__y = 0
+        self.__robot_num = Robot.__robot_num
+        self.__x = 500
+        self.__y = 500
         self.__angle = 0
         self.__shape = "circle"
         self.__speed = 3
-        #cv2.copyTo(Robot.__robotShapeTri, self.__shape)
+        self.__focusFlag = 0
+
         self.__color = BLACK
         self.__thickness = 1
         self.__drawflag = False
@@ -150,6 +161,20 @@ class Robot:
 
     def setshape(self, str):
         self.__shape = str
+
+    def setFocus(self):
+        if Robot.__focusRobot == -1:
+            Robot.__focusRobot = self.__robot_num
+            self.__focusFlag = True
+        else:
+            print("Release Focus First!!!")
+
+    def releaseFocus(self):
+        if Robot.__focusRobot == self.__robot_num:
+            Robot.__focusRobot = -1
+            self.__focusFlag = False
+        else:
+            print("Focus First!!!")
 
     def drawon(self):
         self.__drawflag = True
@@ -200,6 +225,14 @@ class Robot:
 
         if self.__speed:
             cv2.waitKey(50 * self.__speed)
+        else:
+            cv2.waitKey(1)
+
+        if Robot.__focusRobot == -1:
+            print("Please Focus Robot At Least One!!!")
+
+        if self.__focusFlag:
+            self.__sm.movewindow(self.__x - 256, self.__y - 256)
 
     def forward(self, distance):
         radian = math.radians(self.__angle)
@@ -301,27 +334,50 @@ def cal_point_line(point, line):
     d = abs(line[0] * point[0] + line[1] * point[1] + line[2])/math.sqrt(line[0]**2 + line[1]**2)
     return d
 
+
 if __name__ == "__main__":
+
+
+    URL = 'http://1.255.54.9:3000/getPath'
+    # data = {"start":55,"end":20,"name":'"Johnny"'}
+    data2 = 'start=24&end=43&name=%22Johnny%22'
+    # res = requests.get(URL, data=data)
+    res = requests.post(URL, data=data2, headers={"content-type": "application/x-www-form-urlencoded"})
+    res_dict = json.loads(res.text)
+
+    node_raw = list(res_dict.values())
+    nodes = []
+    for cont in node_raw:
+        templist = list(map(float, cont.split(',')))
+        pt1 = geo.GeoPoint(templist[1], templist[0])
+        output = geo.convert(geo.GEO, geo.TM, pt1)
+        nodes.append([output.getX(), output.getY()])
+    for cont in nodes:
+        cont[0] = int((cont[0] - 176066.3519693286) * 4)
+        cont[1] = int((cont[1] - 426729.25143377006) * -4)
+
+    print(nodes)
 
     t_GPS = Robot()
     t = Robot()
+    t.setFocus()
     t_GPS.setcolor(RED)
     t_GPS.drawoff()
     t.setshape("triangle")
 
-    t.setspeed(1)
-    t_GPS.setspeed(1)
+    t.setspeed(0)
+    t_GPS.setspeed(0)
     mark_radius = 20
 
     GPS_ERR_VAL = 20
-    ANG_ERR_VAL = 1
+    ANG_ERR_VAL = 0.5
     VEL_ERR_VAL = 0.2
     NODE_CORR = 0.8
 
-    GPS_WEIGHT = 0.2
-    ROUTE_WIDTH = 16
+    GPS_WEIGHT = 0.15
+    ROUTE_WIDTH = 10
 
-    nodes = [(200, 200), (100, 100), (100, 200), (200, 300), (300, 100)]
+    #nodes = [(500, 500), (600, 600), (600, 800), (700, 800), (800, 600)]
 
     lines = cal_line_equ(nodes)
     print(lines)
@@ -369,7 +425,7 @@ if __name__ == "__main__":
         # 초기 방향 잡아주기 및 카운트 초기화
         target_tilt = t_GPS.calangle(node[0], node[1])
         t.setangle(target_tilt + randn() * ANG_ERR_VAL)
-        t_GPS.setangle(target_tilt + randn() * ANG_ERR_VAL)
+        t_GPS.setangle(target_tilt)
         corr_angle_vis = 0
         while 1:
             # 오류와 사기가 판치는 공간의 시작
@@ -393,14 +449,14 @@ if __name__ == "__main__":
 
             t_GPS.setangle(t.getangle())
             if t_GPS.distance(node) < mark_radius:
-                arrival_count += 1
                 if arrival_count > 3:
-                    t.forward(3)
-                    t_GPS.forward(3 + randn() * VEL_ERR_VAL)
+                    t.forward(2)
+                    t_GPS.forward(2 + randn() * VEL_ERR_VAL)
                     arrival_count = 0
                     t_GPS.goto((1 - NODE_CORR) * err_GPS[0] + NODE_CORR * node[0],
                                (1 - NODE_CORR) * err_GPS[1] + NODE_CORR * node[1])
                     break
+                arrival_count += 1
             # 오류와 사기가 판치는 공간의 끝
 
             # 각도 변경파트: GPS 기반
@@ -442,39 +498,54 @@ if __name__ == "__main__":
             corr_angle_gps = 0
             if tar_angle > 0:
                 if tar_angle > 45:
-                    corr_angle_gps = 35
+                    corr_angle_gps = 45
                 elif tar_angle > 15:
-                    corr_angle_gps = 25
+                    corr_angle_gps = 30
                 else:
-                    corr_angle_gps = 18
+                    corr_angle_gps = 25
             elif tar_angle < 0:
                 if tar_angle < -45:
-                    corr_angle_gps = -35
+                    corr_angle_gps = -45
                 elif tar_angle < -15:
-                    corr_angle_gps = -25
+                    corr_angle_gps = -30
                 else:
-                    corr_angle_gps = -18
+                    corr_angle_gps = -25
 
             dist_route = cal_point_line(t_GPS.position(), lines[index])
-            if dist_route < ROUTE_WIDTH / 2:
-                t.addangle(corr_angle_vis)
-                t_GPS.addangle(corr_angle_vis + randn() * ANG_ERR_VAL)
+            if dist_route > ROUTE_WIDTH / 2 + 10:
+                print("++++++++++++++EMERGENCY CALL!!!++++++++++++++")
+                target_tilt = t.calangle(node[0], node[1])
+                tar_angle = t.diffangle(target_tilt)
+                if tar_angle > 0:
+                    t.addangle(tar_angle + 90)
+                    t_GPS.addangle(tar_angle + 90)
+                elif tar_angle < 0:
+                    t.addangle(tar_angle - 90)
+                    t_GPS.addangle(tar_angle - 90)
+
+                for i in range(7):
+                    t.forward(2 + randn() * VEL_ERR_VAL)
+                    t_GPS.forward(2)
+                continue
+            elif dist_route < ROUTE_WIDTH / 2:
+                t.addangle(corr_angle_vis + randn() * ANG_ERR_VAL)
+                t_GPS.addangle(corr_angle_vis)
                 print("t.angle : " + str(t.getangle()))
                 print("mode : vision")
             else:
-                t.addangle(corr_angle_gps)
-                t_GPS.addangle(corr_angle_gps + randn() * ANG_ERR_VAL)
+                t.addangle(corr_angle_gps + randn() * ANG_ERR_VAL)
+                t_GPS.addangle(corr_angle_gps)
                 print("t.angle : " + str(t.getangle()))
                 print("mode : GPS filter")
 
             # 랜덤 속도 감속
             head = bernoulli.rvs(0.1)
             if head is 1:
-                t.forward(3)
-                t_GPS.forward(3 + randn() * VEL_ERR_VAL)
+                t.forward(2 + randn() * VEL_ERR_VAL)
+                t_GPS.forward(2)
             else:
-                t.forward(9)
-                t_GPS.forward(9 + randn() * VEL_ERR_VAL)
+                t.forward(4 + randn() * VEL_ERR_VAL)
+                t_GPS.forward(4)
 
             if err_count % 20 is 0:
                 # t.write(str(round(t.distance(t_GPS.position()), 2)))

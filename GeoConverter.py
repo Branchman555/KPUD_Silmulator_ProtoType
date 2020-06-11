@@ -438,7 +438,7 @@ if __name__ == "__main__" :
 	print(output1.getX(), output1.getY())
 	print(output2.getX(), output2.getY())
 
-	output1 = convert(TM, GEO, GeoPoint(output1.getX(), output1.getY() - 512))
+	output1 = convert(TM, GEO, GeoPoint(output1.getX()+512, output1.getY() - 512))
 
 	#distance = math.sqrt((output1.getX() - output2.getX())**2 + (output1.getY() - output2.getY())**2)
 	print(output1.getY(), output1.getX())
